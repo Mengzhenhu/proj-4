@@ -1,0 +1,195 @@
+# Project 4
+# group member 1: Mengzhen Hu (s2310496)
+# group member 2: Zijie Fang (s2452932)
+# group member 3: Yu Li (s2319685)
+# work distribution:
+# Mengzhen and Zijie finished the newt function (70%)
+# Yu finfished the rest (30%)
+
+
+
+
+library(MASS)
+# we define the function newt
+# mainly for using newton method for minimizing functions
+# input:
+# theta - is a vector of initial values for the optimization parameters.
+# func - is the objective function to minimize. 
+# grad - is the gradient function. 
+# hess - is the Hessian matrix function.  
+# tol - the convergence tolerance.
+# fscale - a rough estimate of the magnitude of func near the optimum - used in convergence testing.
+# maxit - the maximum number of Newton iterations to try before giving up.
+# max.half - the maximum number of times a step should be halved before concluding that the step has failed to improve the objective.
+# eps - the finite difference intervals to use when a Hessian function is not provided.
+# return:
+# f - the value of the objective function at the minimum.
+# theta - the value of the parameters at the minimum.
+# iter - the number of iterations taken to reach the minimum.
+# g - the gradient vector at the minimum.
+# Hi - the inverse of the Hessian matrix at the minimum.
+
+newt <- function(theta,func,grad,hess=NULL,...,tol=1e-8,fscale=1,maxit=100,
+                 max.half=20,eps=1e-6) {
+  
+  iter = 0
+  # first we consider the first warning 
+  # whether the objective or derivatives are finite at the initial theta or not
+  # if no, then terminate it and say 'the objective or derivatives are not finite at the initial theta'
+  
+  if (max(is.finite(func(theta))==FALSE)){
+    warning('Objective is not finite at the initial theta.')
+  }
+  if (max(is.finite(grad(theta))==FALSE)){
+    warning('Derivatives are not finite at the initial theta.')
+  }
+  while (iter <= maxit) {
+    # step 1
+    # test whether theta is a minimum 
+    # if it is, then terminate it
+    if (max(abs(grad(theta)))<tol*(abs(func(theta))+fscale)) {
+      break
+    }
+    else{
+      # check whether the hessian matrix has value or not
+      # if yes, we will use it
+      # if not, we will use function - H to generate a new one
+      if (is.null(hess) == FALSE) {
+        hess_new = hess(theta)
+      }
+      else {
+        hess_new = H(theta,func,grad)
+      }
+      
+      if (positive(hess_new) == FALSE) {
+        hess_new = perturbation(hess_new)
+      }
+      
+      # step 2, we set delta which equals minus gradient of theta
+      # that is the direction
+      delta = -chol2inv(chol(hess_new))%*%grad(theta)
+      
+      # step 3, set the all the steps run by a right direction
+      # set the initial direction 
+      half = 0
+      # get the value first
+      first_theta = func(theta)
+      # now theta equals the original plus the direction
+      theta = theta + delta
+      # then get the final actual function of new theta
+      final_theta = func(theta)
+      
+      get_result = TRUE
+      while (final_theta > first_theta) {
+        if (half >= max.half) {
+          get_result = FALSE
+          break
+        }
+        # get new theta using the original one minus half delta
+        theta = theta-delta/2
+        # get the final function of theta
+        final_theta = func(theta)
+        half = half + 1
+      }
+      # we consider the second warning
+      # whether the step fails to reduce the objective despite trying max.half step halvings
+      # if yes, then stop and say 'fails to reduce the objective despite trying max.half step halvings'
+      if (get_result == FALSE) {
+        stop('Fails to reduce the objective despite trying max.half step halvings.')
+      }
+      # step 4, generate the new hessian matrix again
+      if (is.null(hess) == FALSE) {
+        hess_new = hess(theta)
+      }
+      else {
+        hess_new = H(theta,func,grad)
+      }
+      if (positive(hess_new) == FALSE) {
+        hess_new = perturbation(hess_new)
+      }
+      iter = iter + 1
+    }
+  }
+  # we consider the third warning now
+  # whether maxit is reached without convergence
+  # if yes, then terminate and say 'maxit is reached without convergence'
+  if (max(abs(grad(theta)))>=(abs(func(theta))+fscale)*tol) {
+    if (iter >= maxit) {
+      stop('maxit is reached without convergence.')
+    }
+  }
+  # if all satisfied, then we return f,theta,iter,g
+  # f is the value of the objective function at the minimum
+  # theta is the value of parameters at the minimum
+  # iter is the number of iterations taken to reach the minimum
+  # g is the gradient vector at the minimum
+  else{
+    return_list = list(f=func(theta),theta=theta,iter=iter,g=grad(theta))
+    # now let's consider the forth warning
+    # whether the Hessian is not positive definite at convergence
+    # if yes, then we create a warning, and say, 'the hessian is not a positive definite at convergence'
+    if (positive(H(theta,grad)) == FALSE) {
+      warning('The heissian is not positive definite at convergence.')
+    }
+    else {
+      # Compute the inverse hessian matrix
+      inverse_H = ginv(H(theta,grad))
+      return_list = list(f=func(theta),theta=theta,iter=iter,g=grad(theta),Hi=inverse_H)
+    }
+    return(return_list)
+  }
+}
+
+# define a function - H, which generates a new hessian matrix
+H <- function(theta,grad,...,eps=1e-7){
+  m <- length(theta)
+  # finite difference hessian
+  finite_difference_H <- matrix(0,m,m)
+  for (i in 1:m) {
+    theta_new <- theta
+    # increase theta_new[i] by eps
+    theta_new[i] <- theta_new[i]+eps 
+    # compute the gradient of new theta
+    grad_new <- grad(theta_new) 
+    # approximate second derives
+    finite_difference_H[i,] <- (grad_new - grad(theta))/eps 
+  }
+  return(finite_difference_H)
+}
+
+# define the function positive to check whether is positive definite
+# return true means is positive
+# return false means is not positive
+positive <- function(a,tol=1e-8) {
+  ei <- eigen(a,symmetric = TRUE) 
+  # get eigenvalue
+  ei_value_a <- ei$values
+  for (i in 1:length(ei_value_a)) {
+    if (abs(ei_value_a[i])<tol) {
+      ei_value_a[i] = 0
+    }
+  }
+  get_result = TRUE
+  for (j in 1:length(ei_value_a)){
+    if (ei_value_a[j] <= 0){
+      get_result = FALSE
+      break
+    }
+  }
+  if (get_result == TRUE){
+    return(TRUE)
+  }
+  else {
+    return(FALSE)
+  }
+}
+
+perturbation = function(a) {
+   norm_of_a= norm(a)
+  i = 0
+  while (positive(a) == FALSE){
+    a <- a + diag(rep(1,sqrt(length(a)))) * (norm_of_a*1e-6*10^i)
+    i = i+1
+  }
+  return(a)
+}
