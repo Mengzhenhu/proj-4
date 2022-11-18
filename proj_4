@@ -2,10 +2,11 @@
 # group member 1: Mengzhen Hu (s2310496)
 # group member 2: Zijie Fang (s2452932)
 # group member 3: Yu Li (s2319685)
+# github address:
+# https://github.com/Mengzhenhu/proj-4.git
 # work distribution:
 # Mengzhen and Zijie finished the newt function (70%)
 # Yu finfished the rest (30%)
-# Please remember add github address.
 
 
 
@@ -165,6 +166,7 @@ positive <- function(a,tol=1e-8) {
   ei <- eigen(a,symmetric = TRUE) 
   # get eigenvalue
   ei_value_a <- ei$values
+  # use for loop to set if value less than toa, then we set it as 0
   for (i in 1:length(ei_value_a)) {
     if (abs(ei_value_a[i])<tol) {
       ei_value_a[i] = 0
@@ -185,6 +187,9 @@ positive <- function(a,tol=1e-8) {
   }
 }
 
+# we use perturbation function to change all the function to positive
+# input: a given matrix
+# output: the positive matrix
 perturbation = function(a) {
    norm_of_a= norm(a)
   i = 0
