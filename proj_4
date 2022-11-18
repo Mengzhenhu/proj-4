@@ -2,8 +2,6 @@
 # group member 1: Mengzhen Hu (s2310496)
 # group member 2: Zijie Fang (s2452932)
 # group member 3: Yu Li (s2319685)
-# github address:
-# https://github.com/Mengzhenhu/proj-4.git
 # work distribution:
 # Mengzhen and Zijie finished the newt function (70%)
 # Yu finfished the rest (30%)
@@ -45,6 +43,7 @@ newt <- function(theta,func,grad,hess=NULL,...,tol=1e-8,fscale=1,maxit=100,
   if (max(is.finite(grad(theta))==FALSE)){
     warning('Derivatives are not finite at the initial theta.')
   }
+  # we use while loop to do iteration
   while (iter <= maxit) {
     # step 1
     # test whether theta is a minimum 
@@ -62,16 +61,18 @@ newt <- function(theta,func,grad,hess=NULL,...,tol=1e-8,fscale=1,maxit=100,
       else {
         hess_new = H(theta,func,grad)
       }
-      
+      # then, we need to test positive or not
+      # if not , we need to use perturbation to change into positive
       if (positive(hess_new) == FALSE) {
         hess_new = perturbation(hess_new)
       }
-      
+
+            
       # step 2, we set delta which equals minus gradient of theta
       # that is the direction
       delta = -chol2inv(chol(hess_new))%*%grad(theta)
       
-      # step 3, set the all the steps run by a right direction
+      # step 3, set all the steps run by a right direction
       # set the initial direction 
       half = 0
       # get the value first
@@ -93,12 +94,14 @@ newt <- function(theta,func,grad,hess=NULL,...,tol=1e-8,fscale=1,maxit=100,
         final_theta = func(theta)
         half = half + 1
       }
+      
       # we consider the second warning
       # whether the step fails to reduce the objective despite trying max.half step halvings
       # if yes, then stop and say 'fails to reduce the objective despite trying max.half step halvings'
       if (get_result == FALSE) {
         stop('Fails to reduce the objective despite trying max.half step halvings.')
       }
+      
       # step 4, generate the new hessian matrix again
       if (is.null(hess) == FALSE) {
         hess_new = hess(theta)
@@ -112,7 +115,7 @@ newt <- function(theta,func,grad,hess=NULL,...,tol=1e-8,fscale=1,maxit=100,
       iter = iter + 1
     }
   }
-  # then we consider the third warning now
+  # we consider the third warning now
   # whether maxit is reached without convergence
   # if yes, then terminate and say 'maxit is reached without convergence'
   if (max(abs(grad(theta)))>=(abs(func(theta))+fscale)*tol) {
