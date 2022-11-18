@@ -112,7 +112,7 @@ newt <- function(theta,func,grad,hess=NULL,...,tol=1e-8,fscale=1,maxit=100,
       iter = iter + 1
     }
   }
-  # we consider the third warning now
+  # then we consider the third warning now
   # whether maxit is reached without convergence
   # if yes, then terminate and say 'maxit is reached without convergence'
   if (max(abs(grad(theta)))>=(abs(func(theta))+fscale)*tol) {
